@@ -8,7 +8,7 @@ import fastparse.WhitespaceApi
 object Parser {
   val White = WhitespaceApi.Wrapper{
     import fastparse.all._
-    NoTrace(" ".rep)
+    NoTrace(CharIn(" \n\t").rep)
   }
   import fastparse.noApi._
   import White._
@@ -17,12 +17,25 @@ object Parser {
   val nameExpr: P[Expression] = name.map(VariableExpression)
   val number: P[Expression] = P( CharIn('0'to'9').rep(1).!.map(VariableExpression))
 
-  lazy val parens: P[Expression] = P( "(" ~/ addSub ~ ")" )
+  lazy val parens: P[Expression] = P( "(" ~/ boolComparisonExpr ~ ")" )
   lazy val factor: P[Expression] = P( number | assignmentExpression | nameExpr | parens )
 
-  lazy val assignmentExpression: P[Expression] = P(name ~ "=" ~ addSub).map({ case (name: String, expr: Expression) =>
+  lazy val assignmentExpression: P[Expression] = P(name ~ "=" ~ plusExpr).map({ case (name: String, expr: Expression) =>
     AssignmentExpression(name, expr)
   })
+
+  lazy val boolComparisonExpr: P[Expression] = P(plusExpr ~ (StringIn(">", "<", "==", "!=").! ~ plusExpr).?)
+    .map({ case (x: Expression, yOpt: Option[(String, Expression)]) => {
+      yOpt match {
+        case None => x
+        case Some((op, y)) => op match {
+          case "<" => BinaryOperatorExpression(LessThanOperator, x, y)
+          case ">" => BinaryOperatorExpression(GreaterThanOperator, x, y)
+          case "==" => BinaryOperatorExpression(EqualsOperator, x, y)
+          case "!=" => BinaryOperatorExpression(NotEqualsOperator, x, y)
+        }
+      }
+  }})
 
   val divMul: P[Expression] = P((factor ~ (CharIn("*/").! ~/ factor).rep).map({ case ((e: Expression, s: Seq[(String, Expression)])) =>
     s.foldLeft(e)({ case (accExpr, (op, newE)) =>
@@ -30,29 +43,31 @@ object Parser {
     })
   }))
 
-  val addSub: P[Expression] = P((divMul ~ (CharIn("+-").! ~/ divMul).rep ).map({ case ((e: Expression, s: Seq[(String, Expression)])) =>
+  val plusExpr: P[Expression] = P((divMul ~ (CharIn("+-").! ~/ divMul).rep ).map({ case ((e: Expression, s: Seq[(String, Expression)])) =>
     s.foldLeft(e)({ case (accExpr, (op, newE)) =>
       BinaryOperatorExpression(if (op == "+") AddOperator else SubtractOperator, accExpr, newE)
     })
   }))
 
-  val nakedExpr: P[Expression] = P( addSub ~ End )
+  val expr = boolComparisonExpr
 
-  lazy val statementParser: P[Statement] = P(declStatement | returnStatementParser | ifStatementParser | exprStatementParser)
+  val nakedExpr: P[Expression] = P(expr ~ End)
 
-  lazy val declStatement: P[Statement] = P(ctype ~ name ~ ("=" ~ addSub).? ~ ";").map({ case (ctype: CType, name: String, init: Option[Expression]) =>
+  lazy val statementParser: P[Statement] = P(declStatement | returnStatementParser | ifStatementParser | whileStatementParser | exprStatementParser)
+
+  lazy val declStatement: P[Statement] = P(ctype ~ name ~ ("=" ~ expr).? ~ ";").map({ case (ctype: CType, name: String, init: Option[Expression]) =>
     DeclarationStatement(name, ctype, init)})
 
-  lazy val exprStatementParser: P[Statement] = P((addSub ~ ";").map(ExpressionStatement))
-  lazy val returnStatementParser: P[Statement] = P("return" ~ addSub ~ ";").map(ReturnStatement)
+  lazy val exprStatementParser: P[Statement] = P((expr ~ ";").map(ExpressionStatement))
+  lazy val returnStatementParser: P[Statement] = P("return" ~ expr ~ ";").map(ReturnStatement)
   lazy val ifStatementParser: P[Statement] = {
-    P("if (" ~ addSub ~ ")" ~ "{" ~ statementParser.rep ~ "}" ~ ("else" ~ "{" ~ statementParser.rep ~ "}").?)
+    P("if (" ~ expr ~ ")" ~ "{" ~ statementParser.rep ~ "}" ~ ("else" ~ "{" ~ statementParser.rep ~ "}").?)
       .map({ case (cond: Expression, body: Seq[Statement], elseCase: Option[Seq[Statement]]) =>
           IfStatement(cond, body.toList, elseCase.map(_.toList).getOrElse(Nil))
       })
   }
   lazy val whileStatementParser: P[Statement] = {
-    P("while (" ~ addSub ~ ")" ~ "{" ~ statementParser.rep ~ "}")
+    P("while (" ~ expr ~ ")" ~ "{" ~ statementParser.rep ~ "}")
       .map({ case (cond: Expression, body: Seq[Statement]) =>
         WhileStatement(cond, body.toList)
       })
@@ -79,13 +94,13 @@ object Parser {
   def main(args: Array[String]): Unit = {
     println(nakedFunctionDefinitionParser.parse(
       """int factorial(int x) {
-        |  int acc = 1;
-        |  while(x > 0) {
-        |    acc = acc * x;
-        |    x = x - 1;
-        |  }
-        |  return acc;
-        |}
+         |  int acc = 1;
+         |  while (x > 0) {
+         |    acc = acc * x;
+         |    x = x - 1;
+         |  }
+         |  return acc;
+         |}
       """.stripMargin).get.value)
   }
 }

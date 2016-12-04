@@ -12,3 +12,7 @@ object MultiplyOperator extends BinaryOperator("*")
 object SubtractOperator extends BinaryOperator("-")
 object DivideOperator extends BinaryOperator("/")
 
+object LessThanOperator extends BinaryOperator("<")
+object GreaterThanOperator extends BinaryOperator(">")
+object EqualsOperator extends BinaryOperator("==")
+object NotEqualsOperator extends BinaryOperator("!=")

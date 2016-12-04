@@ -51,12 +51,41 @@ object Parser {
           IfStatement(cond, body.toList, elseCase.map(_.toList).getOrElse(Nil))
       })
   }
+  lazy val whileStatementParser: P[Statement] = {
+    P("while (" ~ addSub ~ ")" ~ "{" ~ statementParser.rep ~ "}")
+      .map({ case (cond: Expression, body: Seq[Statement]) =>
+        WhileStatement(cond, body.toList)
+      })
+  }
 
   val nakedStmt = P(statementParser ~ End)
 
   val ctype: P[CType] = P("int".! | "bool".!).map((str: String) => CType.nameMapping(str))
 
+  lazy val functionBody: P[Option[List[Statement]]] = ("{" ~/ statementParser.rep() ~/ "}").map({ case (stmts: Seq[Statement]) =>
+    Some(stmts.toList)
+  })
+
+  lazy val emptyFunctionBody: P[Option[List[Statement]]] = P(";").map((_) => None)
+
+  lazy val functionDefinitionParser: P[FunctionDefinition] =
+    P(ctype ~ name ~/ "(" ~ (ctype ~ name).rep(sep=",") ~ ")" ~/ (functionBody | emptyFunctionBody)).map({
+      case (ctype: CType, name: String, args: Seq[(CType, String)], body: Option[List[Statement]]) =>
+        FunctionDefinition(name, ctype, args.map((x) => x._2 -> x._1).toList, body)
+    })
+
+  lazy val nakedFunctionDefinitionParser: P[FunctionDefinition] = P(functionDefinitionParser ~ End)
+
   def main(args: Array[String]): Unit = {
-    println(nakedStmt.parse("int x = 2 * 3;").get.value)
+    println(nakedFunctionDefinitionParser.parse(
+      """int factorial(int x) {
+        |  int acc = 1;
+        |  while(x > 0) {
+        |    acc = acc * x;
+        |    x = x - 1;
+        |  }
+        |  return acc;
+        |}
+      """.stripMargin).get.value)
   }
 }

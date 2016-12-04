@@ -7,5 +7,9 @@ sealed abstract class CType {
 
 }
 
-case object Int extends CType
-case object Bool extends CType
+case object CIntType extends CType
+case object CBoolType extends CType
+
+object CType {
+  val nameMapping: Map[String, CType] = Map("int" -> CIntType, "bool" -> CBoolType)
+}

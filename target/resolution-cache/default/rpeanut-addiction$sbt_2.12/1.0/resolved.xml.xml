@@ -4,7 +4,7 @@
 		module="rpeanut-addiction$sbt_2.12"
 		revision="1.0"
 		status="integration"
-		publication="20161203214423"
+		publication="20161203220804"
 	/>
 	<configurations>
 		<conf name="default" visibility="public"/>

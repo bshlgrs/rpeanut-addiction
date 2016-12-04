@@ -4,7 +4,7 @@
 		module="rpeanut-addiction_2.12"
 		revision="1.0"
 		status="integration"
-		publication="20161203214408"
+		publication="20161203220809"
 	>
 		<description>
 		rpeanut-addiction
@@ -34,5 +34,10 @@
 	<dependencies>
 		<dependency org="org.scala-lang" name="scala-compiler" rev="2.12.0" conf="scala-tool->default,optional(default)"/>
 		<dependency org="org.scala-lang" name="scala-library" rev="2.12.0" conf="scala-tool->default,optional(default);compile->default(compile)"/>
+		<dependency org="org.scalatest" name="scalatest_2.11" rev="3.0.0" conf="compile->default(compile)"/>
+		<dependency org="com.lihaoyi" name="fastparse_2.12" rev="0.4.1" conf="compile->default(compile)"/>
+		<dependency org="org.scalacheck" name="scalacheck_2.12" rev="1.13.2" conf="compile->default(compile)"/>
+		<dependency org="com.softwaremill.quicklens" name="quicklens_2.12" rev="1.4.8" conf="compile->default(compile)"/>
+		<dependency org="org.scalactic" name="scalactic_2.12" rev="3.0.0" conf="compile->default(compile)"/>
 	</dependencies>
 </ivy-module>
